@@ -1,0 +1,30 @@
+name: Update Jackpot Brasil LDN
+on:
+  schedule:
+    - cron: '0 4,16 * * *' # Gira alle 4:00 e alle 16:00 (orario UTC)
+  workflow_dispatch: # Permette a te di avviarlo a mano per test
+
+jobs:
+  update-json:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Fetch Jackpot Data
+        run: |
+          # Mega-Sena
+          MEGA=$(curl -s https://loteriascaixa-api.herokuapp.com/api/megasena/latest | jq -r '.valorEstimadoPróximoConcurso // "Consultar"')
+          # Quina
+          QUINA=$(curl -s https://loteriascaixa-api.herokuapp.com/api/quina/latest | jq -r '.valorEstimadoPróximoConcurso // "Consultar"')
+          
+          # Creazione JSON pulito per l'app
+          echo "{\"megasena\": \"R$ $MEGA\", \"quina\": \"R$ $QUINA\", \"last_update\": \"$(date)\"}" > jackpot.json
+
+      - name: Commit and Push
+        run: |
+          git config --global user.name "LDN-Bot"
+          git config --global user.email "bot@raky1977.com"
+          git add jackpot.json
+          git commit -m "Update Jackpot LDN: $MEGA" || exit 0
+          git push
